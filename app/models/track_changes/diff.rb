@@ -10,8 +10,8 @@ module TrackChanges
     # Returns a hash of changes where the key is the field name
     # and the value is an array of the from value and the to value
     def changes
-      Hash[from.collect do |key, was|
-        [key, [was, to[key]]]
+      Hash[(from.keys + to.keys).collect do |key|
+        [key, [from[key], to[key]]]
       end]
     end
   end
