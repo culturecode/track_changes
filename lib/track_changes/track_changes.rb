@@ -35,13 +35,17 @@ module TrackChanges
     def persist_tracked_changes
       return if track_changes == false
 
-      action     = id_was.blank? ? 'create' : 'update'
+      new_record = id_was.blank?
+      action     = new_record ? 'create' : 'update'
       changes_by = track_changes_by.is_a?(ActiveRecord::Base) ? track_changes_by.id : track_changes_by
 
       if snapshot
         snapshot.create_diff(:action => action, :changes_by => changes_by)
         snapshot.update
-      else
+      elsif new_record
+        create_snapshot
+        snapshot.create_diff(:action => action, :changes_by => changes_by, :from => {}, :to => snapshot.state)
+      else # We started tracking changes after the item was created
         create_snapshot
         snapshot.create_diff(:action => action, :changes_by => changes_by, :from => {})
       end
