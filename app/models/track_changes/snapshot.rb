@@ -21,8 +21,8 @@ module TrackChanges
           to[key] = record_state[key]
         end
       end
-
-      record.diffs.create!(diff_attributes.reverse_merge(:from => from, :to => to)) unless from.empty? && to.empty?
+      diff_attributes = diff_attributes.reverse_merge(:from => from, :to => to)
+      record.diffs.create!(diff_attributes) unless diff_attributes[:from].empty? && diff_attributes[:to].empty?
     end
 
     # Updates the snapshot to the current record state
