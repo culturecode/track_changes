@@ -22,6 +22,9 @@ module TrackChanges
     def diff_change_sentence(diff, field, changes, link_models = [])
       from, to = changes.is_a?(Array) ? changes : [nil, changes]
 
+      from.reject!(&:blank?) if from.is_a?(Array)
+      to.reject!(&:blank?) if to.is_a?(Array)
+
       return if from.blank? && to.blank?
 
       if record = diff.record

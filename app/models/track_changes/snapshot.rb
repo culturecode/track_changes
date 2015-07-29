@@ -8,6 +8,11 @@ module TrackChanges
 
     before_save :capture_record_state
 
+    # Returns a hash of the current values for all tracked fields on the record
+    def self.record_state(record)
+      Hash[record.class.track_changes_fields.collect {|method_name| [method_name, record.send(method_name)] }]
+    end
+
     # Creates a diff object that shows the changes between this snapshot and the record's state
     def create_diff(diff_attributes = {})
       record_state   = self.class.record_state(record)
@@ -32,11 +37,6 @@ module TrackChanges
 
     def capture_record_state
       self.state = self.class.record_state(record)
-    end
-
-    # Returns a hash of the current values for all tracked fields on the record
-    def self.record_state(record)
-      Hash[record.class.track_changes_fields.collect {|method_name| [method_name, record.send(method_name)] }]
     end
   end
 end
