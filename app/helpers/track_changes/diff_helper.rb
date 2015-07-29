@@ -11,9 +11,17 @@ module TrackChanges
       end
     end
 
+    #
+    # Generate a human readable sentence for a change in a TrackChanges::Diff
+    #
+    # diff        - a TrackChanges::Diff object
+    # field       - the specific field of the diff (e.g. collection_id)
+    # changes     - an array of the previous and current value for the field
+    # link_models - an array of classes of models that should generate as in-sentence links
+    #
     def diff_change_sentence(diff, field, changes, link_models = [])
       from, to = changes.is_a?(Array) ? changes : [nil, changes]
-      # return if diff.action == 'destroy'
+
       return if from.blank? && to.blank?
 
       if record = diff.record
@@ -22,8 +30,8 @@ module TrackChanges
       end
 
       if reflection
-        from = reflection.klass.find(from) if from.present?
-        to   = reflection.klass.find(to)   if to.present?
+        from = reflection.klass.find_by_id(from) || content_tag(:span, 'DELETED', :class => 'deleted', :title => "This #{field_name} has been deleted") if from.present?
+        to   = reflection.klass.find_by_id(to)   || content_tag(:span, 'DELETED', :class => 'deleted', :title => "This #{field_name} has been deleted") if to.present?
       end
 
       if from.blank?
