@@ -5,7 +5,7 @@ require "track_changes/version"
 
 # Describe your gem and declare its dependencies:
 Gem::Specification.new do |s|
-  s.name        = "track_changes"
+  s.name        = "culturecode-track_changes"
   s.version     = TrackChanges::VERSION
   s.authors     = ["Nicholas Jakobsen, Ryan Wallace"]
   s.email       = ["contact@culturecode.ca"]
