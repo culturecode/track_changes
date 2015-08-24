@@ -47,11 +47,11 @@ in the ```:changes_by column``` of the record. If given an instance of ActiveRec
 the record's id will be used.
 
 ```ruby
-# Inline attribution
+# Model-level attribution
 person.save(:changes_by => 'Joe Changems')
 
 # Block-level attribution
-attribute_changes_to 'Joe Changems' do
+TrackChanges.with_changes_attributed_to 'Joe Changems' do
   person.save
 end
 
