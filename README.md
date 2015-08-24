@@ -26,8 +26,6 @@ end
 
 ## Usage
 
-In your model
-
 ```ruby
 class Person < ActiveRecord::Base
   tracks_changes # may also pass an options hash
@@ -42,3 +40,23 @@ By default all model attributes are tracked, except the primary_key, usually ```
 - ```:methods``` accepts a field name or array of field names to track in addition to the default fields
 - ```:track_timestamps``` accepts a boolean, enabling or disabling tracking of ```created_at``` and ```updated_at```
 - ```:track_primary_key``` accepts a boolean, enabling or disabling tracking of the model's primary key
+
+### Attribution
+Changes can be attributed to a particular source. The source is saved as a string
+in the ```:changes_by column``` of the record. If given an instance of ActiveRecord::Base,
+the record's id will be used.
+
+```ruby
+# Inline attribution
+person.save(:changes_by => 'Joe Changems')
+
+# Block-level attribution
+attribute_changes_to 'Joe Changems' do
+  person.save
+end
+
+# Controller-level attribution
+class MyController < ApplicationController
+  attribute_changes_to :current_user
+end
+```

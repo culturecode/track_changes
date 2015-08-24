@@ -1,1 +1,1 @@
-ActiveRecord::Base.send :extend, TrackChanges::ActsMethod
+ActiveRecord::Base.send :extend, TrackChanges::Model::Base
