@@ -12,7 +12,7 @@ module TrackChanges
         attr_writer   :track_changes_by # Faux attribute to store who made the changes so we can save it in the diff
 
         has_one :snapshot, :as => :record, :class_name => 'TrackChanges::Snapshot' # A representation of this record as it was last saved
-        has_many :diffs, :as => :record, :class_name => 'TrackChanges::Diff' # A representation of changes made between saves through this record's lifetime
+        has_many :diffs, lambda { reorder('id DESC') }, :as => :record, :class_name => 'TrackChanges::Diff' # A representation of changes made between saves through this record's lifetime
 
         after_save :persist_tracked_changes
       end
