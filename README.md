@@ -48,7 +48,8 @@ the record's id will be used.
 
 ```ruby
 # Model-level attribution
-person.save(:changes_by => 'Joe Changems')
+person.track_changes_by = 'Joe Changems'
+person.save
 
 # Block-level attribution
 TrackChanges.with_changes_attributed_to 'Joe Changems' do
