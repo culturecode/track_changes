@@ -7,6 +7,11 @@ module TrackChanges
     serialize :from, Hash
     serialize :to, Hash
 
+    # Returns changes but only those where the string representation of the value has changed
+    def visible_changes
+      changes.select {|key, (from, to)| (from.present? || to.present?) && (from.to_s != to.to_s) }
+    end
+
     # Returns a hash of changes where the key is the field name
     # and the value is an array of the from value and the to value
     def changes
