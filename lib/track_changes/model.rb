@@ -49,7 +49,7 @@ module TrackChanges
       def persist_tracked_changes
         return if track_changes == false
 
-        new_record = id_was.blank?
+        new_record = was_new_record_before_save?
         action     = new_record ? 'create' : 'update'
         changes_by = track_changes_by.is_a?(ActiveRecord::Base) ? track_changes_by.id : track_changes_by
 
@@ -63,6 +63,11 @@ module TrackChanges
           create_snapshot
           snapshot.create_diff(:action => action, :changes_by => changes_by, :from => {})
         end
+      end
+
+      def was_new_record_before_save?
+        original_id = respond_to?(:attribute_before_last_save) ? attribute_before_last_save(:id) : id_was
+        original_id.blank?
       end
     end
   end
