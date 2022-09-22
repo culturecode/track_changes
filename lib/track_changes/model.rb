@@ -36,11 +36,18 @@ module TrackChanges
         # Create new snapshots
         where.not(:id => joins(:snapshot)).find_each(&:create_snapshot)
       end
+
+      # Record a diff and update the snapshot for all records in the scope
+      # This can be used to record a diff after an `update_all`.
+      def persist_tracked_changes(track_changes_by: nil)
+        find_each do |record|
+          record.track_changes_by = track_changes_by
+          record.persist_tracked_changes
+        end
+      end
     end
 
     module InstanceMethods
-      private
-
       def track_changes_by
         @track_changes_by || TrackChanges.default_attribution
       end
@@ -66,8 +73,13 @@ module TrackChanges
       end
 
       def was_new_record_before_save?
-        original_id = respond_to?(:attribute_before_last_save) ? attribute_before_last_save(:id) : id_was
-        original_id.blank?
+        if !respond_to?(:attribute_before_last_save) # Rails < 6
+          id_was.blank?
+        elsif saved_change_to_attribute?(:id) # Rails <=5
+          attribute_before_last_save(:id).blank?
+        else # Allow this method to be used outside of a transaction, e.g. after a bulk update
+          new_record?
+        end
       end
     end
   end
