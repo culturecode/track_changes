@@ -21,11 +21,17 @@ module TrackChanges
     module ClassMethods
       # Returns the method names to call to fetch the fields tracked for changes
       def track_changes_fields
-        fields =  Array(track_changes_options[:only]).collect(&:to_s).presence || self.attribute_names
+        fields =  Array(track_changes_options[:only]).collect(&:to_s).presence || default_track_changes_fields
         fields -= Array(track_changes_options[:except]).collect(&:to_s)
         fields += Array(track_changes_options[:methods]).collect(&:to_s)
         fields -= ['created_at', 'updated_at'] unless track_changes_options[:track_timestamps]
         fields -= [primary_key] unless track_changes_options[:track_primary_key]
+
+        return fields.uniq
+      end
+
+      def default_track_changes_fields
+        attribute_names - stored_attributes.keys.map(&:to_s) + stored_attributes.values.flatten.map(&:to_s)
       end
 
       # Create snapshots for all records so that the next changes made are captured
