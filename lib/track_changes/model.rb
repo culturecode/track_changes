@@ -26,6 +26,7 @@ module TrackChanges
         fields += Array(track_changes_options[:methods]).collect(&:to_s)
         fields -= ['created_at', 'updated_at'] unless track_changes_options[:track_timestamps]
         fields -= [primary_key] unless track_changes_options[:track_primary_key]
+        fields -= [locking_column] unless track_changes_options[:track_locking_column]
 
         return fields.uniq
       end

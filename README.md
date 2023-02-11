@@ -40,6 +40,8 @@ By default all model attributes are tracked, except the primary_key, usually ```
 - ```:methods``` accepts a field name or array of field names to track in addition to the default fields
 - ```:track_timestamps``` accepts a boolean, enabling or disabling tracking of ```created_at``` and ```updated_at```
 - ```:track_primary_key``` accepts a boolean, enabling or disabling tracking of the model's primary key
+- ```:track_locking_column``` accepts a boolean, enabling or disabling tracking of the model's locking column
+
 
 ### Attribution
 Changes can be attributed to a particular source. The source is saved as a string
