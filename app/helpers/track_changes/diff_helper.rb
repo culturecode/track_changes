@@ -33,8 +33,9 @@ module TrackChanges
       end
 
       if reflection
-        from = reflection.klass.find_by_id(from) || content_tag(:span, 'DELETED', :class => 'deleted', :title => "This #{field_name} has been deleted") if from.present?
-        to   = reflection.klass.find_by_id(to)   || content_tag(:span, 'DELETED', :class => 'deleted', :title => "This #{field_name} has been deleted") if to.present?
+        primary_key = reflection.options.fetch(:primary_key, :id)
+        from = reflection.klass.find_by(primary_key => from) || content_tag(:span, 'DELETED', :class => 'deleted', :title => "This #{field_name} has been deleted") if from.present?
+        to   = reflection.klass.find_by(primary_key => to)   || content_tag(:span, 'DELETED', :class => 'deleted', :title => "This #{field_name} has been deleted") if to.present?
       end
 
       if from.blank?
