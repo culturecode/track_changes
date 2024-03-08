@@ -51,7 +51,7 @@ module TrackChanges
     def link_diff_field_value(value, link_models = [])
       case value
       when Array, ActiveRecord::Relation
-        value.collect{|v| link_diff_field_value(v, link_models) }.to_sentence.html_safe
+        safe_join(value.collect {|v| link_diff_field_value(v, link_models) }, ', ')
       when *link_models
         link_to(value.to_s, value)
       else
