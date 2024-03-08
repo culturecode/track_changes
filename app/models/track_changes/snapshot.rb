@@ -4,7 +4,7 @@ module TrackChanges
 
     belongs_to :record, :polymorphic => true
 
-    serialize :state, Hash
+    serialize :state, Hash if Configuration.serialize
 
     before_save :capture_record_state
 

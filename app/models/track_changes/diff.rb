@@ -4,8 +4,10 @@ module TrackChanges
 
     belongs_to :record, :polymorphic => true
 
-    serialize :from, Hash
-    serialize :to, Hash
+    if Configuration.serialize
+      serialize :from, Hash
+      serialize :to, Hash
+    end
 
     # Returns changes but only those where the string representation of the value has changed
     def visible_changes
