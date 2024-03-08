@@ -29,13 +29,14 @@ module TrackChanges
 
       if record = diff.record
         field_name = diff.record.class.human_attribute_name(field)
-        reflection = diff.record.class.reflections.values.detect {|reflection| reflection.foreign_key == field.to_s }
+        reflection = diff.record.class.reflect_on_association(field) # Look up association by name, e.g. users for has_many :users
+        reflection ||= diff.record.class.reflections.values.detect {|ref| ref.foreign_key == field.to_s } # Detect association by foreign key, e.g. user_id for belongs_to :user
       end
 
       if reflection
         primary_key = reflection.options.fetch(:primary_key, :id)
-        from = reflection.klass.find_by(primary_key => from) || content_tag(:span, 'DELETED', :class => 'deleted', :title => "This #{field_name} has been deleted") if from.present?
-        to   = reflection.klass.find_by(primary_key => to)   || content_tag(:span, 'DELETED', :class => 'deleted', :title => "This #{field_name} has been deleted") if to.present?
+        from = reflection.klass.where(primary_key => from) || content_tag(:span, 'DELETED', :class => 'deleted', :title => "This #{field_name} has been deleted") if from.present?
+        to   = reflection.klass.where(primary_key => to)   || content_tag(:span, 'DELETED', :class => 'deleted', :title => "This #{field_name} has been deleted") if to.present?
       end
 
       if from.blank?
@@ -49,7 +50,7 @@ module TrackChanges
 
     def link_diff_field_value(value, link_models = [])
       case value
-      when Array
+      when Array, ActiveRecord::Relation
         value.collect{|v| link_diff_field_value(v, link_models) }.to_sentence.html_safe
       when *link_models
         link_to(value.to_s, value)
