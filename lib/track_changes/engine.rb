@@ -1,3 +1,4 @@
+require 'track_changes/configuration'
 require 'track_changes/model'
 require 'track_changes/controller'
 require 'track_changes/attribution'

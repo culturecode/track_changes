@@ -11,8 +11,10 @@ module TrackChanges
         attr_accessor :track_changes # Faux attribute to allow disabling of change tracking on this record
         attr_writer   :track_changes_by # Faux attribute to store who made the changes so we can save it in the diff
 
-        has_one :snapshot, :as => :record, :class_name => 'TrackChanges::Snapshot' # A representation of this record as it was last saved
-        has_many :diffs, lambda { reorder('id DESC') }, :as => :record, :class_name => 'TrackChanges::Diff' # A representation of changes made between saves through this record's lifetime
+        # A representation of this record as it was last saved
+        has_one :snapshot, :as => :record, :class_name => 'TrackChanges::Snapshot', :dependent => Configuration.cascade_destroy ? :destroy : nil
+        # A representation of changes made between saves through this record's lifetime
+        has_many :diffs, lambda { reorder('id DESC') }, :as => :record, :class_name => 'TrackChanges::Diff', :dependent => Configuration.cascade_destroy ? :delete_all : nil
 
         after_save :persist_tracked_changes
       end

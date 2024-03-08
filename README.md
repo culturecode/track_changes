@@ -24,6 +24,12 @@ class CreateTrackChangesTables < ActiveRecord::Migration
 end
 ```
 
+## Configuration
+
+```ruby
+TrackChanges::Configuration.cascade_destroy = false # Controls whether tracked changes are deleted when the record is deleted. Can be set to false if an audit trail of destroyed records is desired. Default: true
+```
+
 ## Usage
 
 ```ruby
