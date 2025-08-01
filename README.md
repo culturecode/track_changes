@@ -39,6 +39,11 @@ class Person < ActiveRecord::Base
 end
 ```
 
+```ruby
+Person.snapshot_all # Initialize snapshots for existing records so the next time the record is saved a diff can be generated.
+Person.tracked_change(status: "approved", assigned_to: "user_123") # Returns a list of diffs where specific attributes changed to the specified values.
+```
+
 ### Options
 By default all model attributes are tracked, except the primary_key, usually ```id```, ```created_at```, and ```updated_at```.
 

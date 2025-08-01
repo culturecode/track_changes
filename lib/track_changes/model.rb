@@ -90,6 +90,27 @@ module TrackChanges
           new_record?
         end
       end
+
+      # Filters tracked change diffs to only those where the given attributes changed *to* the specified values.
+      #
+      # It builds a scope that matches records where each given attribute in `to` has the specified value.
+      #
+      # Example:
+      #   model.tracked_change(status: "approved", priority: "high")
+      #   # => returns diffs where status became "approved" and priority became "high"
+      #
+      # Params:
+      # - changes (keyword arguments): One or more attribute-value pairs to match against the `to` column.
+      #
+      # Returns:
+      # - ActiveRecord::Relation: A filtered scope on the diffs table.
+      def tracked_change(**changes)
+        table_name = diffs.quoted_table_name
+        column_name = diffs.connection.quote_column_name(:to)
+        changes.reduce(diffs) do |scope, (attribute, value)|
+          scope.where("#{table_name}.#{column_name} ->> ? = ?", attribute, value)
+        end
+      end
     end
   end
 end
