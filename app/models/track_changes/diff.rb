@@ -5,8 +5,8 @@ module TrackChanges
     belongs_to :record, :polymorphic => true
 
     if Configuration.serialize
-      serialize :from, type: Hash
-      serialize :to, type: Hash
+      serialize :from, type: Hash, coder: YAML
+      serialize :to, type: Hash, coder: YAML
     end
 
     # Returns changes but only those where the string representation of the value has changed
