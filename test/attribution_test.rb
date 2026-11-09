@@ -66,7 +66,74 @@ class AttributionTest < ActiveSupport::TestCase
     assert_nil last_diff(post).changes_by
   end
 
+  test "keeps each thread's attribution apart when their blocks overlap" do
+    alice_entered = Queue.new
+    bob_entered = Queue.new
+    alice_saved = Queue.new
+
+    alice = Thread.new do
+      in_thread do
+        TrackChanges.with_changes_attributed_to("Alice") do
+          alice_entered << true
+          bob_entered.pop
+          Post.create!(title: "Alice's post")
+          alice_saved << true
+        end
+      end
+    end
+
+    bob = Thread.new do
+      in_thread do
+        alice_entered.pop
+        TrackChanges.with_changes_attributed_to("Bob") do
+          bob_entered << true
+          alice_saved.pop
+          alice.join
+          Post.create!(title: "Bob's post")
+        end
+      end
+    end
+
+    [alice, bob].each(&:join)
+    Post.create!(title: "After both")
+
+    recorded = Post.all.to_h { |post| [post.title, last_diff(post).changes_by] }
+    assert_equal({"Alice's post" => "Alice", "Bob's post" => "Bob", "After both" => nil}, recorded)
+  end
+
+  test "keeps the block's attribution across an executor run inside it" do
+    post = Post.create!(title: "Draft")
+
+    TrackChanges.with_changes_attributed_to("Importer") do
+      Rails.application.executor.wrap {}
+      post.update!(title: "Final")
+    end
+
+    assert_equal "Importer", last_diff(post).changes_by
+  end
+
+  test "restores the previous attribution when the block raises" do
+    post = Post.create!(title: "Draft")
+
+    TrackChanges.with_changes_attributed_to("Alice") do
+      assert_raises(RuntimeError) do
+        TrackChanges.with_changes_attributed_to("Bob") { raise "failed" }
+      end
+      post.update!(title: "Final")
+    end
+
+    assert_equal "Alice", last_diff(post).changes_by
+  end
+
   test "returns the value of the block" do
     assert_equal :result, TrackChanges.with_changes_attributed_to("Alice") { :result }
+  end
+
+  private
+
+  # Runs the block on its own connection, as a request on another server thread would.
+  def in_thread(&block)
+    Thread.current.report_on_exception = false
+    ActiveRecord::Base.connection_pool.with_connection(&block)
   end
 end

@@ -1,5 +1,7 @@
 # Track Changes
 
+Requires Rails 7.1 or later.
+
 ## Installation
 
 Migration
@@ -75,3 +77,20 @@ class MyController < ApplicationController
   attribute_changes_to :current_user
 end
 ```
+
+Block and controller attribution belong to the current thread, so concurrent requests on a
+multi-threaded server each record their own. Threads started inside a block do not see its
+attribution.
+
+On a fiber-based server such as Falcon, set `config.active_support.isolation_level = :fiber`
+so that each fiber has its own attribution. With the default `:thread` isolation, fibers on
+the same thread share it.
+
+A process-wide default is recorded when neither the record nor a block sets an
+attribution. Set it once at boot, for example in an initializer:
+
+```ruby
+TrackChanges.default_attribution = 'System'
+```
+
+A block attributed to `nil` records no attribution, even when a default is set.
