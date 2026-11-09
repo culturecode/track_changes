@@ -24,6 +24,12 @@ end
 ENV["DATABASE_URL"] = "sqlite3::memory:"
 TrackChangesTest::Application.initialize!
 
+# Keeps only frames from the test files, which stand in for a host's own code. The default
+# cleaner keeps frames from a host's `app`, `config`, `lib` and `test` directories.
+TEST_FRAMES_ONLY = ->(line) { !line.match?(/_test\.rb:\d+/) }
+Rails.backtrace_cleaner.remove_silencers!
+Rails.backtrace_cleaner.add_silencer(&TEST_FRAMES_ONLY)
+
 # A shared-cache in-memory database, so connections checked out by other threads see the
 # same tables.
 ActiveRecord::Base.establish_connection(

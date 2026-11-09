@@ -97,6 +97,33 @@ TrackChanges.default_attribution = 'System'
 
 A block attributed to `nil` records no attribution, even when a default is set.
 
+### Finding unattributed changes
+To find code that records changes without attribution, report each change recorded with a
+blank `changes_by`. Choose how, as for deprecation warnings:
+
+```ruby
+TrackChanges::Configuration.unattributed_change_behavior = :log # Warn in Rails.logger
+TrackChanges::Configuration.unattributed_change_behavior = :raise # Raise TrackChanges::UnattributedChangeError, which rolls back the save. Meant for tests. See below for `persist_tracked_changes`.
+TrackChanges::Configuration.unattributed_change_behavior = ->(message, callstack) { ... } # Report it yourself, with any object that responds to `call`
+TrackChanges::Configuration.unattributed_change_behavior = :ignore # Report nothing. Default. nil does the same.
+```
+
+The message names the record and the first line of your app's code that led to the change,
+as `Rails.backtrace_cleaner` selects it:
+
+```
+TrackChanges recorded an unattributed update of Person 12 from app/jobs/import_job.rb:8:in 'ImportJob#perform'
+```
+
+A change attributed to the default, set with `TrackChanges.default_attribution =`, is not
+reported. A change in a block attributed to `nil` is.
+
+`:raise` rolls back a save, because diffs are recorded while the record saves. The
+class-level `persist_tracked_changes`, used after `update_all`, runs outside a transaction.
+There `:raise` leaves the unattributed diff written and stops before the remaining records.
+
+An unknown behavior raises `ArgumentError` when it is assigned.
+
 ### Mechanism and note
 A change can also record how it was made, in the ```:mechanism``` column, and free text
 about that particular change, in the ```:note``` column. Both are optional, and both stay
