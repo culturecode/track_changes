@@ -50,6 +50,8 @@ ActiveRecord::Schema.define do
     t.text :to
     t.string :action
     t.string :changes_by
+    t.string :mechanism
+    t.text :note
     t.timestamps
   end
 end

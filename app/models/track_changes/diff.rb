@@ -9,6 +9,15 @@ module TrackChanges
       serialize :to, type: Hash, coder: YAML
     end
 
+    # Returns the mechanism and note in effect, keyed by column, for those of the two columns
+    # this table has. A column the host has not added is left out, so the diff saves without
+    # it.
+    #
+    # @return [Hash{Symbol => String, nil}] nil for a value no enclosing block has set.
+    def self.change_details
+      { mechanism: TrackChanges.change_mechanism, note: TrackChanges.change_note }.select { |column, _| column_names.include?(column.to_s) }
+    end
+
     # Returns changes but only those where the string representation of the value has changed
     def visible_changes
       changes.select {|key, (from, to)| (from.present? || to.present?) && (from.to_s != to.to_s) }

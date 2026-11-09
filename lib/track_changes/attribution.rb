@@ -28,12 +28,54 @@ module TrackChanges
     #
     # @param source [ActiveRecord::Base, String, nil] an Active Record source is recorded by
     #   id. nil records no attribution, even when a default is set.
+    # @param details [Hash] optional `mechanism:` and `note:`, applied to the block as
+    #   `with_change_details` applies them.
     # @return the value of the block.
-    def with_changes_attributed_to(source, &block)
-      with_change_context(attribution: source, &block)
+    # @raise [ArgumentError] when `details` has a key other than `mechanism` or `note`.
+    def with_changes_attributed_to(source, **details, &block)
+      with_change_context(attribution: source, **validate_change_details(details), &block)
+    end
+
+    # Records `mechanism` and `note` with changes made during the block, keeping the current
+    # attribution, then restores the previous values. Each key that is omitted keeps the
+    # enclosing block's value, and an explicit nil clears it. Both are recorded only once the
+    # host has added the `mechanism` and `note` columns to `track_changes_diffs`.
+    #
+    # @example
+    #   TrackChanges.with_change_details(mechanism: "nightly import", note: "Batch 12") do
+    #     Post.find_each(&:recalculate!)
+    #   end
+    #
+    # @param details [Hash] `mechanism:`, how the change was made, and `note:`, free text
+    #   about this change. Either may be omitted.
+    # @return the value of the block.
+    # @raise [ArgumentError] when `details` has a key other than `mechanism` or `note`.
+    def with_change_details(**details, &block)
+      with_change_context(**validate_change_details(details), &block)
+    end
+
+    # Returns the mechanism set by the innermost enclosing block in the current execution
+    # context.
+    #
+    # @return [String, nil] nil outside any block that set one.
+    def change_mechanism
+      change_context[:mechanism]
+    end
+
+    # Returns the note set by the innermost enclosing block in the current execution
+    # context.
+    #
+    # @return [String, nil] nil outside any block that set one.
+    def change_note
+      change_context[:note]
     end
 
     private
+
+    def validate_change_details(details)
+      details.assert_valid_keys(:mechanism, :note)
+      details
+    end
 
     # Merges `values` over the enclosing block's context for the duration of the block.
     def with_change_context(**values)
