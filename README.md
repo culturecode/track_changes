@@ -1,10 +1,12 @@
 # Track Changes
 
+Requires Rails 7.1 or later.
+
 ## Installation
 
 Migration
 ```ruby
-class CreateTrackChangesTables < ActiveRecord::Migration
+class CreateTrackChangesTables < ActiveRecord::Migration[7.1]
   def change
     create_table :track_changes_snapshots do |t|
       t.references :record, :polymorphic => true
@@ -18,6 +20,8 @@ class CreateTrackChangesTables < ActiveRecord::Migration
       t.text :to
       t.string :action
       t.string :changes_by
+      t.string :mechanism
+      t.text :note
       t.timestamps
     end
   end
@@ -75,3 +79,127 @@ class MyController < ApplicationController
   attribute_changes_to :current_user
 end
 ```
+
+Block and controller attribution belong to the current thread, so concurrent requests on a
+multi-threaded server each record their own. Threads started inside a block do not see its
+attribution.
+
+On a fiber-based server such as Falcon, set `config.active_support.isolation_level = :fiber`
+so that each fiber has its own attribution. With the default `:thread` isolation, fibers on
+the same thread share it.
+
+A process-wide default is recorded when neither the record nor a block sets an
+attribution. Set it once at boot, for example in an initializer:
+
+```ruby
+TrackChanges.default_attribution = 'System'
+```
+
+A block attributed to `nil` records no attribution, even when a default is set.
+
+### Finding unattributed changes
+To find code that records changes without attribution, report each change recorded with a
+blank `changes_by`. Choose how, as for deprecation warnings:
+
+```ruby
+TrackChanges::Configuration.unattributed_change_behavior = :log # Warn in Rails.logger
+TrackChanges::Configuration.unattributed_change_behavior = :raise # Raise TrackChanges::UnattributedChangeError, which rolls back the save. Meant for tests. See below for `persist_tracked_changes`.
+TrackChanges::Configuration.unattributed_change_behavior = ->(message, callstack) { ... } # Report it yourself, with any object that responds to `call`
+TrackChanges::Configuration.unattributed_change_behavior = :ignore # Report nothing. Default. nil does the same.
+```
+
+The message names the record and the first line of your app's code that led to the change,
+as `Rails.backtrace_cleaner` selects it:
+
+```
+TrackChanges recorded an unattributed update of Person 12 from app/jobs/import_job.rb:8:in 'ImportJob#perform'
+```
+
+A change attributed to the default, set with `TrackChanges.default_attribution =`, is not
+reported. A change in a block attributed to `nil` is.
+
+`:raise` rolls back a save, because diffs are recorded while the record saves. The
+class-level `persist_tracked_changes`, used after `update_all`, runs outside a transaction.
+There `:raise` leaves the unattributed diff written and stops before the remaining records.
+
+An unknown behavior raises `ArgumentError` when it is assigned.
+
+### Mechanism and note
+A change can also record how it was made, in the ```:mechanism``` column, and free text
+about that particular change, in the ```:note``` column. Both are optional, and both stay
+blank when nothing sets them. They are recorded once the host has added the columns, as
+described under [Upgrading from 0.3 to 0.4](#upgrading-from-03-to-04).
+
+```ruby
+# Block-level, keeping the current attribution
+TrackChanges.with_change_details mechanism: 'nightly import', note: 'Batch 12' do
+  person.save
+end
+
+# Block-level, with the attribution
+TrackChanges.with_changes_attributed_to 'System', mechanism: 'nightly import' do
+  person.save
+end
+
+# Controller-level
+class PeopleController < ApplicationController
+  attribute_changes_to :current_user, mechanism: 'edit interface'
+  record_change_details mechanism: 'bulk edit', note: :bulk_edit_note, only: :bulk_update
+end
+```
+
+A nested block keeps the enclosing block's mechanism or note for each key it omits, and an
+explicit `nil` clears it. Each block restores the previous values when it ends.
+
+In the controller macros a Symbol names a controller method called on each request, and any
+other value is recorded as given. Other options, such as ```:only``` and ```:except```, are
+passed to `around_action`.
+
+Read them back with `diff.mechanism` and `diff.note`.
+
+## Upgrading from 0.3 to 0.4
+
+### Rails 7.1
+Version 0.4 requires Rails 7.1 or later.
+
+### Attribution is per thread
+Block and controller attribution now belong to the current thread. Before
+0.4 they were shared by the whole process, so any two threads in one process could record
+each other's attribution. That includes overlapping requests on a multi-threaded server such
+as Puma, and a background thread in the web process, such as a thread pool running jobs,
+that saves tracked records while a request is attributing changes. A single-threaded server
+with no such background threads was not affected. Affected rows cannot be corrected after
+the fact. If you need to tell them apart, rows recorded before you deployed 0.4 are the ones
+affected, and `created_at` dates them.
+
+Two behaviours change:
+
+- Threads started inside a block no longer see its attribution. Set the attribution inside
+  the thread.
+- `TrackChanges.default_attribution = ...` sets the process-wide default. Inside a block it
+  now changes that default rather than the block's attribution. Use
+  `with_changes_attributed_to` to set an attribution for a block.
+
+Code that sets attribution only through `with_changes_attributed_to`, `attribute_changes_to`,
+`track_changes_by` or a default set at boot needs no change.
+
+### Adding the mechanism and note columns
+Add both columns with no default:
+
+```ruby
+class AddMechanismAndNoteToTrackChangesDiffs < ActiveRecord::Migration[7.1]
+  def change
+    add_column :track_changes_diffs, :mechanism, :string
+    add_column :track_changes_diffs, :note, :text
+  end
+end
+```
+
+Leave both blank on existing rows. A row recorded before the upgrade says nothing about how
+its change was made, so a column default or a backfill would label old changes with a
+mechanism they did not have. Treat a blank mechanism as "not recorded", not as any
+particular mechanism. New rows record a blank mechanism and note when nothing sets them,
+even if the column has a default.
+
+0.4 works before the migration has run. Until the columns exist, changes are recorded without a
+mechanism or note, and `diff.mechanism` and `diff.note` raise `NoMethodError`.

@@ -2,6 +2,7 @@ require 'track_changes/configuration'
 require 'track_changes/model'
 require 'track_changes/controller'
 require 'track_changes/attribution'
+require 'track_changes/unattributed_change'
 
 module TrackChanges
   class Engine < ::Rails::Engine
